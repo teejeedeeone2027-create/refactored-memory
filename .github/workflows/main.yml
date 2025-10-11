@@ -7,44 +7,61 @@ jobs:
     timeout-minutes: 360
     
     steps:
-    - name: Setup Android Emulator
+    - name: Setup Android SDK
       uses: android-actions/setup-android@v3
       
-    - name: Create Android Phone
+    - name: Install Android Emulator
       run: |
-        # Install emulator
-        sdkmanager "emulator" "platform-tools"
-        sdkmanager "system-images;android-33;google_apis;x86_64"
+        # Install SDK tools and platform tools
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platform-tools" "emulator"
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "system-images;android-33;google_apis;x86_64"
         
-        # Create phone profile (Pixel 4)
-        avdmanager create avd -n android-phone -k "system-images;android-33;google_apis;x86_64" -d "pixel_4" --force
+        # Accept licenses
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+        
+        # Create AVD
+        $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager create avd \
+          -n android-phone \
+          -k "system-images;android-33;google_apis;x86_64" \
+          -d "pixel_4" \
+          --force
+          
+        echo "Android emulator setup complete"
         
     - name: Start Android Phone
       run: |
-        # Start emulator headless
-        emulator -avd android-phone -no-window -no-boot-anim -no-audio -gpu swiftshader_indirect &
-        sleep 60  # Wait for boot
+        # Start emulator with proper path
+        $ANDROID_HOME/emulator/emulator -avd android-phone -no-window -no-boot-anim -no-audio -gpu swiftshader_indirect &
+        EMULATOR_PID=$!
+        
+        # Wait for boot with timeout
+        echo "Waiting for Android to boot..."
+        timeout 180 $ANDROID_HOME/platform-tools/adb wait-for-device
         
         # Check if device is ready
-        adb devices
-        adb wait-for-device
+        $ANDROID_HOME/platform-tools/adb devices
         echo "Android phone is booted and ready!"
+        
+        # Wait a bit more for system to stabilize
+        sleep 30
         
     - name: Setup Web Interface
       run: |
-        # Install noVNC for web access
+        # Install dependencies
         sudo apt update
-        sudo apt install -y xvfb novnc websockify
+        sudo apt install -y xvfb novnc websockify x11vnc
         
-        # Start framebuffer
+        # Start virtual display
         Xvfb :1 -screen 0 1024x768x24 &
         export DISPLAY=:1
         
-        # Start VNC server for Android display
-        x11vnc -display :1 -forever -shared -nopw &
+        # Start VNC server
+        x11vnc -display :1 -forever -shared -nopw -listen localhost &
         
-        # Start noVNC web server (port 6080)
+        # Start noVNC web server
         websockify --web /usr/share/novnc/ 6080 localhost:5900 &
+        
+        echo "Web interface setup complete"
         
     - name: Start Cloudflare Tunnel
       run: |
@@ -52,7 +69,7 @@ jobs:
         wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
         sudo dpkg -i cloudflared-linux-amd64.deb
         
-        # Start tunnel to web interface
         echo "=== ANDROID PHONE READY ==="
         echo "Connect via the URL below in your browser!"
+        echo "You'll get a full Android phone interface!"
         cloudflared tunnel --url http://localhost:6080
