@@ -1,4 +1,4 @@
-name: Simple Android Phone
+name: Docker Android Phone
 on: workflow_dispatch
 
 jobs:
@@ -7,41 +7,30 @@ jobs:
     timeout-minutes: 360
     
     steps:
-    - name: Start Android Emulator
-      uses: reactivecircus/android-emulator-runner@v2
-      with:
-        api-level: 33
-        arch: x86_64
-        profile: pixel_4
-        target: google_apis
-        emulator-options: -no-window -gpu off -no-audio -no-boot-anim
-        script: |
-          # Wait for emulator to be ready
-          adb wait-for-device
-          echo "Emulator is running"
-          # Keep the emulator running
-          sleep infinity
-          
-    - name: Setup Web Access
+    - name: Start Android in Docker with Web UI
       run: |
-        # Install VNC and web interface
-        sudo apt update
-        sudo apt install -y x11vnc novnc websockify
+        # Pull and run Android with web interface
+        docker run -d \
+          --name android-phone \
+          --privileged \
+          -v /dev/kvm:/dev/kvm \
+          -p 6080:6080 \
+          -p 5554:5554 \
+          -p 5555:5555 \
+          -e DEVICE="Pixel 4" \
+          -e APK="/apk/app-debug.apk" \
+          -e EMULATOR_ARGS="-no-window -gpu off -no-audio" \
+          -e TURN_OFF_SCREEN=false \
+          budtmo/docker-android:latest
+          
+        # Wait for boot
+        sleep 120
+        echo "Android phone should be ready at port 6080"
         
-        # Setup display (emulator runs on :0)
-        export DISPLAY=:0
-        
-        # Start VNC server
-        x11vnc -display :0 -forever -shared -nopw -listen localhost &
-        
-        # Start noVNC
-        websockify --web /usr/share/novnc/ 6080 localhost:5900 &
-        
-    - name: Start Cloudflare Tunnel
+    - name: Expose via Cloudflare
       run: |
         wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
         sudo dpkg -i cloudflared-linux-amd64.deb
         
-        echo "🎯 ANDROID PHONE READY!"
-        echo "📱 Connect via the URL below:"
+        echo "📱 ANDROID PHONE ACCESSIBLE VIA:"
         cloudflared tunnel --url http://localhost:6080
