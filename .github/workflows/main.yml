@@ -1,0 +1,58 @@
+name: Standalone Android Phone via Cloud
+on: workflow_dispatch
+
+jobs:
+  android-phone:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    
+    steps:
+    - name: Setup Android Emulator
+      uses: android-actions/setup-android@v3
+      
+    - name: Create Android Phone
+      run: |
+        # Install emulator
+        sdkmanager "emulator" "platform-tools"
+        sdkmanager "system-images;android-33;google_apis;x86_64"
+        
+        # Create phone profile (Pixel 4)
+        avdmanager create avd -n android-phone -k "system-images;android-33;google_apis;x86_64" -d "pixel_4" --force
+        
+    - name: Start Android Phone
+      run: |
+        # Start emulator headless
+        emulator -avd android-phone -no-window -no-boot-anim -no-audio -gpu swiftshader_indirect &
+        sleep 60  # Wait for boot
+        
+        # Check if device is ready
+        adb devices
+        adb wait-for-device
+        echo "Android phone is booted and ready!"
+        
+    - name: Setup Web Interface
+      run: |
+        # Install noVNC for web access
+        sudo apt update
+        sudo apt install -y xvfb novnc websockify
+        
+        # Start framebuffer
+        Xvfb :1 -screen 0 1024x768x24 &
+        export DISPLAY=:1
+        
+        # Start VNC server for Android display
+        x11vnc -display :1 -forever -shared -nopw &
+        
+        # Start noVNC web server (port 6080)
+        websockify --web /usr/share/novnc/ 6080 localhost:5900 &
+        
+    - name: Start Cloudflare Tunnel
+      run: |
+        # Install cloudflared
+        wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+        sudo dpkg -i cloudflared-linux-amd64.deb
+        
+        # Start tunnel to web interface
+        echo "=== ANDROID PHONE READY ==="
+        echo "Connect via the URL below in your browser!"
+        cloudflared tunnel --url http://localhost:6080
