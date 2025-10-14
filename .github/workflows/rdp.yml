@@ -168,7 +168,7 @@ jobs:
         
         Write-Host "Cloudflared downloaded"
 
-    - name: Start Cloudflare Tunnel for RDP
+    - name: Start Cloudflare Tunnel and Keep Alive
       run: |
         Write-Host "=== STARTING CLOUDFLARE TUNNEL ==="
         Write-Host "RDP Credentials:"
@@ -176,43 +176,18 @@ jobs:
         Write-Host "Password: $env:RDP_PASSWORD"
         Write-Host ""
         Write-Host "System has been optimized for MuMu Android Emulator"
-        Write-Host "RDP will be accessible via Cloudflare Tunnel"
-        Write-Host "Keep this workflow running and connect via the URL below"
+        Write-Host "Starting Cloudflare Tunnel..."
+        Write-Host ""
+        Write-Host "IMPORTANT: This step will keep running to maintain the RDP connection"
+        Write-Host "The Cloudflare tunnel URL will appear below once established"
+        Write-Host "DO NOT stop this workflow - it will terminate your RDP access"
         Write-Host ""
         
-        # Start cloudflared tunnel for RDP in background
-        Start-Process -FilePath ".\cloudflared.exe" -ArgumentList "tunnel --url rdp://localhost:3389"
+        # Start cloudflared tunnel in the FOREGROUND to see the URL and keep it running
+        .\cloudflared.exe tunnel --url rdp://localhost:3389
 
+    # This step will never run because the previous step keeps running
     - name: Keep Runner Active and Display Status
       run: |
-        Write-Host "=== RDP SESSION ACTIVE ==="
-        Write-Host "✅ System optimized for MuMu Android Emulator"
-        Write-Host "✅ RDP is accessible via Cloudflare Tunnel" 
-        Write-Host "📱 Recommended MuMu Configuration:"
-        Write-Host "   - 4 CPU Cores"
-        Write-Host "   - 4GB RAM" 
-        Write-Host "   - 1280x720 Resolution"
-        Write-Host "   - 60 FPS Target"
-        Write-Host ""
-        Write-Host "🔑 RDP Credentials:"
-        Write-Host "   Username: $env:RDP_USER" 
-        Write-Host "   Password: $env:RDP_PASSWORD"
-        Write-Host ""
-        Write-Host "🌐 Connect via the Cloudflare Tunnel URL above"
-        Write-Host ""
-        Write-Host "📝 After connecting via RDP:"
-        Write-Host "   1. Install MuMu if not already installed"
-        Write-Host "   2. Configure MuMu settings as shown above"
-        Write-Host "   3. Set power plan to High Performance"
-        Write-Host ""
-        Write-Host "The runner will stay active until manually stopped"
-        Write-Host "Use Ctrl+C in the workflow to terminate when done"
-        
-        # Display periodic status updates
-        $counter = 0
-        while ($true) {
-            $counter++
-            $elapsedMinutes = $counter * 5
-            Write-Host "[$(Get-Date)] RDP session active - $elapsedMinutes minutes elapsed"
-            Start-Sleep -Seconds 300
-        }
+        Write-Host "This should never appear - tunnel is running in previous step"
+        while ($true) { Start-Sleep -Seconds 60 }
