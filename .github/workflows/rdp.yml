@@ -42,22 +42,15 @@ jobs:
       run: |
         Write-Host "=== CONFIGURING VIRTUAL MEMORY ==="
         
-        # Disable automatic page file management
-        $computerSystem = Get-WmiObject -Class Win32_ComputerSystem
-        $computerSystem.AutomaticManagedPagefile = $false
-        $computerSystem.Put()
+        # Use PowerShell commands instead of WMI for page file configuration
+        $computer = Get-CimInstance -ClassName Win32_ComputerSystem
+        Write-Host "Current automatic page file: $($computer.AutomaticManagedPagefile)"
         
-        # Remove existing page file settings
-        $currentPageFile = Get-WmiObject -Class Win32_PageFileSetting
-        if ($currentPageFile) {
-            $currentPageFile.Delete()
-        }
+        # Disable automatic page file management using registry
+        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" -Name "PagingFiles" -Value "C:\pagefile.sys 8192 16384"
         
-        # Create new page file with optimal size
-        $newPageFile = ([wmiclass]"Win32_PageFileSetting").Create("C:\pagefile.sys")
-        $newPageFile.InitialSize = 8192  # 8GB initial
-        $newPageFile.MaximumSize = 16384 # 16GB maximum
-        $newPageFile.Put()
+        # Set page file configuration directly in registry
+        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" -Name "PagingFiles" -Value "C:\pagefile.sys 8192 16384" -Force
         
         Write-Host "Virtual memory configured (8GB-16GB)"
 
@@ -101,7 +94,7 @@ jobs:
         Write-Host "=== CREATING RDP USER ==="
         
         # Generate secure random password
-        $password = -join ((65..90) + (97..122) + (48..57) + (33..47) + (58..64) + (91..96) + (123..126) | Get-Random -Count 16 | ForEach-Object {[char]$_})
+        $password = -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 16 | ForEach-Object {[char]$_})
         
         Write-Host "Generated password: $password"
         
@@ -126,48 +119,45 @@ jobs:
       run: |
         Write-Host "=== INSTALLING MUMU ANDROID EMULATOR ==="
         
-        # Download MuMu Emulator (replace with actual download link)
-        # Note: You'll need to get the actual download URL from MuMu website
-        $mumuUrl = "https://mumu.163.com/global/download/"  # Update this with direct download link
-        Invoke-WebRequest -Uri $mumuUrl -OutFile "mumu-installer.exe" -UserAgent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        
-        Write-Host "MuMu downloaded, installing..."
-        
-        # Install silently
-        Start-Process -FilePath "mumu-installer.exe" -ArgumentList "/S" -Wait
-        
-        Write-Host "Waiting for MuMu services to initialize..."
-        Start-Sleep -Seconds 45
-        
-        Write-Host "MuMu installation completed"
+        # Download MuMu Emulator 
+        # Note: You'll need to replace this with the actual direct download link
+        $mumuUrl = "https://mumu.163.com/global/download/"  # Update with direct download link
+        try {
+            Invoke-WebRequest -Uri $mumuUrl -OutFile "mumu-installer.exe" -UserAgent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            Write-Host "MuMu downloaded, installing..."
+            
+            # Install silently
+            Start-Process -FilePath "mumu-installer.exe" -ArgumentList "/S" -Wait
+            Write-Host "Waiting for MuMu services to initialize..."
+            Start-Sleep -Seconds 30
+            Write-Host "MuMu installation completed"
+        }
+        catch {
+            Write-Host "MuMu download failed, but continuing with setup..."
+            Write-Host "You can install MuMu manually after RDP connection"
+        }
 
     - name: Configure MuMu Emulator Settings
       run: |
         Write-Host "=== CONFIGURING MUMU SETTINGS ==="
         
         # Wait a bit more for installation to complete
-        Start-Sleep -Seconds 30
+        Start-Sleep -Seconds 10
         
-        # Optimize Mumu settings via registry
-        Write-Host "Applying performance optimizations..."
+        # Optimize Mumu settings via registry (if installed)
+        Write-Host "Applying performance optimizations to registry..."
         
         # CPU cores (4 cores)
-        reg add "HKEY_CURRENT_USER\Software\Netease\MuMuPlayer\Settings" /v "cpu_count" /t REG_DWORD /d 4 /f 2>$null
+        reg add "HKEY_CURRENT_USER\Software\Netease\MuMuPlayer\Settings" /v "cpu_count" /t REG_DWORD /d 4 /f 2>$null || Write-Host "MuMu registry not found - will configure manually after install"
         
         # Memory size (4GB)
-        reg add "HKEY_CURRENT_USER\Software\Netease\MuMuPlayer\Settings" /v "memory_size" /t REG_DWORD /d 4096 /f 2>$null
+        reg add "HKEY_CURRENT_USER\Software\Netease\MuMuPlayer\Settings" /v "memory_size" /t REG_DWORD /d 4096 /f 2>$null || Write-Host "MuMu registry not found - will configure manually after install"
         
         # Resolution (1280x720 for better performance)
-        reg add "HKEY_CURRENT_USER\Software\Netease\MuMuPlayer\Settings" /v "resolution_width" /t REG_DWORD /d 1280 /f 2>$null
-        reg add "HKEY_CURRENT_USER\Software\Netease\MuMuPlayer\Settings" /v "resolution_height" /t REG_DWORD /d 720 /f 2>$null
+        reg add "HKEY_CURRENT_USER\Software\Netease\MuMuPlayer\Settings" /v "resolution_width" /t REG_DWORD /d 1280 /f 2>$null || Write-Host "MuMu registry not found - will configure manually after install"
+        reg add "HKEY_CURRENT_USER\Software\Netease\MuMuPlayer\Settings" /v "resolution_height" /t REG_DWORD /d 720 /f 2>$null || Write-Host "MuMu registry not found - will configure manually after install"
         
-        # Frame rate
-        reg add "HKEY_CURRENT_USER\Software\Netease\MuMuPlayer\Settings" /v "frame_rate" /t REG_DWORD /d 60 /f 2>$null
-        
-        # Graphics mode (DirectX for better performance)
-        reg add "HKEY_CURRENT_USER\Software\Netease\MuMuPlayer\Settings" /v "graphics_renderer" /t REG_DWORD /d 1 /f 2>$null
-        
-        Write-Host "MuMu settings configured: 4 CPU cores, 4GB RAM, 1280x720 resolution"
+        Write-Host "MuMu settings configured in registry"
 
     - name: Install Cloudflared
       run: |
@@ -185,20 +175,20 @@ jobs:
         Write-Host "Username: $env:RDP_USER"
         Write-Host "Password: $env:RDP_PASSWORD"
         Write-Host ""
-        Write-Host "MuMu Emulator has been installed and optimized"
+        Write-Host "System has been optimized for MuMu Android Emulator"
         Write-Host "RDP will be accessible via Cloudflare Tunnel"
         Write-Host "Keep this workflow running and connect via the URL below"
         Write-Host ""
         
-        # Start cloudflared tunnel for RDP
+        # Start cloudflared tunnel for RDP in background
         Start-Process -FilePath ".\cloudflared.exe" -ArgumentList "tunnel --url rdp://localhost:3389"
 
     - name: Keep Runner Active and Display Status
       run: |
         Write-Host "=== RDP SESSION ACTIVE ==="
-        Write-Host "✅ MuMu Android Emulator is installed and optimized"
+        Write-Host "✅ System optimized for MuMu Android Emulator"
         Write-Host "✅ RDP is accessible via Cloudflare Tunnel" 
-        Write-Host "📱 MuMu Configuration:"
+        Write-Host "📱 Recommended MuMu Configuration:"
         Write-Host "   - 4 CPU Cores"
         Write-Host "   - 4GB RAM" 
         Write-Host "   - 1280x720 Resolution"
@@ -210,6 +200,11 @@ jobs:
         Write-Host ""
         Write-Host "🌐 Connect via the Cloudflare Tunnel URL above"
         Write-Host ""
+        Write-Host "📝 After connecting via RDP:"
+        Write-Host "   1. Install MuMu if not already installed"
+        Write-Host "   2. Configure MuMu settings as shown above"
+        Write-Host "   3. Set power plan to High Performance"
+        Write-Host ""
         Write-Host "The runner will stay active until manually stopped"
         Write-Host "Use Ctrl+C in the workflow to terminate when done"
         
@@ -218,6 +213,6 @@ jobs:
         while ($true) {
             $counter++
             $elapsedMinutes = $counter * 5
-            Write-Host "[$(Get-Date)] RDP session active - $elapsedMinutes minutes elapsed - MuMu ready for use"
+            Write-Host "[$(Get-Date)] RDP session active - $elapsedMinutes minutes elapsed"
             Start-Sleep -Seconds 300
         }
