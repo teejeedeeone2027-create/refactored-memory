@@ -115,58 +115,29 @@ jobs:
         Write-Host "Username: RDPUser"
         Write-Host "Password: $password"
 
-    - name: Install MuMu Android Emulator
+    - name: Download MuMu Installer
       run: |
-        Write-Host "=== INSTALLING MUMU ANDROID EMULATOR ==="
+        Write-Host "=== DOWNLOADING MUMU INSTALLER ==="
         
         # Download MuMu Emulator using the direct link
         $mumuUrl = "https://a11.gdl.netease.com/MuMu_5.0.4_gw-win-download_all_1756402042.exe?n=MuMu_5.0.4_r9kVqqC.exe"
-        Write-Host "Downloading MuMu from: $mumuUrl"
+        Write-Host "Downloading MuMu installer from: $mumuUrl"
         
-        Invoke-WebRequest -Uri $mumuUrl -OutFile "mumu-installer.exe" -UserAgent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        Invoke-WebRequest -Uri $mumuUrl -OutFile "MuMu_Installer.exe" -UserAgent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         
-        Write-Host "MuMu downloaded successfully, installing..."
-        
-        # Install silently
-        Start-Process -FilePath "mumu-installer.exe" -ArgumentList "/S" -Wait
-        
-        Write-Host "Waiting for MuMu services to initialize..."
-        Start-Sleep -Seconds 45
-        
-        Write-Host "MuMu installation completed successfully!"
+        Write-Host "✅ MuMu installer downloaded successfully as 'MuMu_Installer.exe'"
 
-    - name: Configure MuMu Emulator Settings
+    - name: Download MuMu Data File
       run: |
-        Write-Host "=== CONFIGURING MUMU SETTINGS ==="
+        Write-Host "=== DOWNLOADING MUMU DATA FILE ==="
         
-        # Wait for installation to complete fully
-        Start-Sleep -Seconds 30
+        # Download the MuMu data file
+        $mumuDataUrl = "https://github.com/binahmad362/glowing-guide/raw/refs/heads/main/Android%20Device.mumudata?download="
+        Write-Host "Downloading MuMu data file from: $mumuDataUrl"
         
-        # Optimize Mumu settings via registry
-        Write-Host "Applying performance optimizations to MuMu registry..."
+        Invoke-WebRequest -Uri $mumuDataUrl -OutFile "Android_Device.mumudata" -UserAgent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         
-        # CPU cores (4 cores)
-        reg add "HKEY_CURRENT_USER\Software\Netease\MuMuPlayer\Settings" /v "cpu_count" /t REG_DWORD /d 4 /f 2>$null
-        Write-Host "Set CPU cores to 4"
-        
-        # Memory size (4GB)
-        reg add "HKEY_CURRENT_USER\Software\Netease\MuMuPlayer\Settings" /v "memory_size" /t REG_DWORD /d 4096 /f 2>$null
-        Write-Host "Set RAM to 4GB"
-        
-        # Resolution (1280x720 for better performance)
-        reg add "HKEY_CURRENT_USER\Software\Netease\MuMuPlayer\Settings" /v "resolution_width" /t REG_DWORD /d 1280 /f 2>$null
-        reg add "HKEY_CURRENT_USER\Software\Netease\MuMuPlayer\Settings" /v "resolution_height" /t REG_DWORD /d 720 /f 2>$null
-        Write-Host "Set resolution to 1280x720"
-        
-        # Frame rate
-        reg add "HKEY_CURRENT_USER\Software\Netease\MuMuPlayer\Settings" /v "frame_rate" /t REG_DWORD /d 60 /f 2>$null
-        Write-Host "Set frame rate to 60 FPS"
-        
-        # Graphics mode (DirectX for better performance)
-        reg add "HKEY_CURRENT_USER\Software\Netease\MuMuPlayer\Settings" /v "graphics_renderer" /t REG_DWORD /d 1 /f 2>$null
-        Write-Host "Set graphics to DirectX mode"
-        
-        Write-Host "MuMu settings fully configured for optimal performance!"
+        Write-Host "✅ MuMu data file downloaded successfully as 'Android_Device.mumudata'"
 
     - name: Install Cloudflared
       run: |
@@ -186,14 +157,20 @@ jobs:
         Write-Host "   Username: $env:RDP_USER"
         Write-Host "   Password: $env:RDP_PASSWORD"
         Write-Host ""
+        Write-Host "📦 FILES DOWNLOADED:"
+        Write-Host "   ✅ MuMu_Installer.exe - MuMu Android Emulator"
+        Write-Host "   ✅ Android_Device.mumudata - MuMu data file"
+        Write-Host ""
         Write-Host "🚀 SYSTEM OPTIMIZATIONS APPLIED:"
         Write-Host "   ✅ Virtualization Enabled"
         Write-Host "   ✅ High Performance Power Plan"
         Write-Host "   ✅ 8GB-16GB Virtual Memory"
         Write-Host "   ✅ RDP Graphics Optimized"
-        Write-Host "   ✅ MuMu Installed & Pre-configured"
-        Write-Host "   ✅ 4 CPU Cores, 4GB RAM for MuMu"
-        Write-Host "   ✅ 1280x720 Resolution, 60 FPS"
+        Write-Host ""
+        Write-Host "🔧 MANUAL INSTALLATION REQUIRED:"
+        Write-Host "   After connecting via RDP:"
+        Write-Host "   1. Run 'MuMu_Installer.exe' to install MuMu"
+        Write-Host "   2. Use 'Android_Device.mumudata' as needed"
         Write-Host ""
         Write-Host "🌐 STARTING CLOUDFLARE TUNNEL..."
         Write-Host "   The RDP connection URL will appear below shortly"
