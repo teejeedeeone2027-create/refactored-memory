@@ -185,6 +185,6 @@ jobs:
         Write-Host ""
         Write-Host "🔗 CLOUDFLARE TUNNEL OUTPUT:"
         
-        # Start cloudflared tunnel with RDP protocol for browser access
-        # Let cloudflared generate a random URL automatically
-        .\cloudflared.exe access rdp --url rdp://localhost:3389
+        # Start cloudflared tunnel with TCP protocol for RDP
+        # Cloudflared will generate a random URL automatically
+        .\cloudflared.exe access tcp --url localhost:3389
