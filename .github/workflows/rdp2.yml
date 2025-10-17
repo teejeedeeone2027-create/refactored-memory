@@ -1,4 +1,4 @@
-name: Optimized Windows RDP for MuMu Emulator
+name: Optimized Windows RDP for MuMu Emulator with Browser Access
 
 on:
   workflow_dispatch: # Manual trigger only
@@ -148,12 +148,16 @@ jobs:
         
         Write-Host "Cloudflared downloaded successfully"
 
-    - name: Start Cloudflare Tunnel and Keep Alive
+    - name: Start Cloudflare Tunnel for Browser RDP
       run: |
-        Write-Host "=== STARTING CLOUDFLARE TUNNEL ==="
+        Write-Host "=== STARTING CLOUDFLARE TUNNEL FOR BROWSER RDP ==="
         Write-Host "🎉 SETUP COMPLETE! 🎉"
         Write-Host ""
-        Write-Host "📋 RDP CONNECTION DETAILS:"
+        Write-Host "🌐 BROWSER RDP ACCESS:"
+        Write-Host "   Waiting for Cloudflare tunnel to generate URL..."
+        Write-Host "   The RDP URL will appear below once the tunnel is established"
+        Write-Host ""
+        Write-Host "📋 LOGIN CREDENTIALS:"
         Write-Host "   Username: $env:RDP_USER"
         Write-Host "   Password: $env:RDP_PASSWORD"
         Write-Host ""
@@ -168,17 +172,19 @@ jobs:
         Write-Host "   ✅ RDP Graphics Optimized"
         Write-Host ""
         Write-Host "🔧 MANUAL INSTALLATION REQUIRED:"
-        Write-Host "   After connecting via RDP:"
+        Write-Host "   After connecting via browser RDP:"
         Write-Host "   1. Run 'MuMu_Installer.exe' to install MuMu"
         Write-Host "   2. Use 'Android_Device.mumudata' as needed"
         Write-Host ""
-        Write-Host "🌐 STARTING CLOUDFLARE TUNNEL..."
-        Write-Host "   The RDP connection URL will appear below shortly"
+        Write-Host "🌐 STARTING BROWSER RDP TUNNEL..."
+        Write-Host "   The dynamic RDP connection URL will appear below shortly"
         Write-Host "   This will keep running to maintain your RDP access"
         Write-Host ""
         Write-Host "⚠️  IMPORTANT: DO NOT STOP THIS WORKFLOW!"
         Write-Host "   Stopping will terminate your RDP connection"
         Write-Host ""
+        Write-Host "🔗 CLOUDFLARE TUNNEL OUTPUT:"
         
-        # Start cloudflared tunnel in the FOREGROUND to see the URL and keep it running
-        .\cloudflared.exe tunnel --url rdp://localhost:3389
+        # Start cloudflared tunnel with RDP protocol for browser access
+        # Let cloudflared generate a random URL automatically
+        .\cloudflared.exe access rdp --url rdp://localhost:3389
