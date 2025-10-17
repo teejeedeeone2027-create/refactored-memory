@@ -1,0 +1,130 @@
+name: Create Chrome Profile via VNC
+
+on:
+  workflow_dispatch: # Manual trigger only
+
+jobs:
+  build-chrome-profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360 # 6 hour maximum
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Desktop Environment and Chrome
+      run: |
+        sudo apt-get update
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+          xfce4 xfce4-goodies \
+          tigervnc-standalone-server \
+          wget \
+          gnupg \
+          ca-certificates
+
+        # Install Google Chrome
+        wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+        echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+        sudo apt-get update
+        sudo apt-get install -y google-chrome-stable
+
+    - name: Install Python dependencies for automation
+      run: |
+        sudo apt-get install -y python3-tk python3-dev
+        pip install pyautogui
+
+    - name: Install cloudflared
+      run: |
+        wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+        sudo dpkg -i cloudflared-linux-amd64.deb
+
+    - name: Download and extract Chrome profile data
+      run: |
+        echo "=== DOWNLOADING CHROME PROFILE DATA ==="
+        
+        # Download the tar file
+        wget https://github.com/binahmad362/special-spoon/raw/refs/heads/main/google-chrome.tar -O /home/runner/google-chrome.tar
+        
+        # See what's in the tar file first
+        echo "=== CHECKING TAR FILE STRUCTURE ==="
+        tar -tf /home/runner/google-chrome.tar | head -10
+        
+        # Remove existing chrome profile if it exists
+        rm -rf /home/runner/.config/google-chrome
+        
+        # Extract directly to the correct location
+        echo "=== EXTRACTING TO CORRECT LOCATION ==="
+        mkdir -p /home/runner/.config
+        tar -xvf /home/runner/google-chrome.tar -C /home/runner/.config/
+        
+        # Verify the extraction
+        echo "=== VERIFYING EXTRACTION ==="
+        ls -la /home/runner/.config/google-chrome/
+        
+        # Set proper ownership
+        chown -R runner:runner /home/runner/.config/google-chrome/
+
+    - name: Setup VNC password
+      run: |
+        mkdir -p ~/.vnc
+        echo "Jalingo@1" | vncpasswd -f > ~/.vnc/passwd
+        chmod 600 ~/.vnc/passwd
+
+    - name: Start VNC Server
+      run: |
+        # Start VNC server on display :1
+        vncserver :1 -geometry 1280x800 -depth 24 -localhost no -xstartup /usr/bin/xfce4-session &
+        sleep 10
+        echo "VNC server started on :1"
+
+    - name: Set Display Environment
+      run: |
+        echo "DISPLAY=:1" >> $GITHUB_ENV
+
+    - name: Start Chrome Browser
+      run: |
+        sleep 10
+        echo "Starting Chrome browser..."
+        google-chrome-stable --no-sandbox --disable-dev-shm-usage --user-data-dir=/home/runner/.config/google-chrome --new-window &
+        sleep 8
+        echo "Chrome started"
+
+    - name: Run Chrome Automation
+      run: |
+        # Create a simple Python script file
+        echo "import os" > automation.py
+        echo "import time" >> automation.py
+        echo "import pyautogui" >> automation.py
+        echo "os.environ['DISPLAY'] = ':1'" >> automation.py
+        echo "print('Starting automation...')" >> automation.py
+        echo "time.sleep(5)" >> automation.py
+        echo "print('Focusing address bar...')" >> automation.py
+        echo "pyautogui.hotkey('ctrl', 'l')" >> automation.py
+        echo "time.sleep(2)" >> automation.py
+        echo "print('Typing URL...')" >> automation.py
+        echo "pyautogui.write('https://colab.research.google.com/drive/1MElDzVC3JbJ8zLmf5AMQp54mi_u3Uu7r#scrollTo=8FWyseBM5ZFo')" >> automation.py
+        echo "time.sleep(1)" >> automation.py
+        echo "print('Pressing Enter...')" >> automation.py
+        echo "pyautogui.press('enter')" >> automation.py
+        echo "time.sleep(3)" >> automation.py
+        echo "print('Pressing Control+Enter...')" >> automation.py
+        echo "pyautogui.hotkey('ctrl', 'enter')" >> automation.py
+        echo "print('Automation completed!')" >> automation.py
+        
+        python3 automation.py
+
+    - name: Start Cloudflare Tunnel
+      run: |
+        echo "=== CLOUDFLARE TUNNEL STARTING ==="
+        echo "The tunnel will provide a URL for VNC connection"
+        echo "Keep this workflow running and connect via the URL below"
+        echo "Chrome is now open with Colab notebook running"
+        cloudflared tunnel --url tcp://localhost:5901
+
+    - name: Upload Chrome Profile as Artifact
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: chrome-profile-backup
+        path: /home/runner/my_google_profile.tar.gz
+        retention-days: 1
