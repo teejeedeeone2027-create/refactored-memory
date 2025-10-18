@@ -154,8 +154,8 @@ jobs:
         Write-Host "🎉 SETUP COMPLETE! 🎉"
         Write-Host ""
         Write-Host "🌐 BROWSER RDP ACCESS:"
-        Write-Host "   Waiting for Cloudflare tunnel to generate URL..."
-        Write-Host "   The RDP URL will appear below once the tunnel is established"
+        Write-Host "   Cloudflare tunnel is starting..."
+        Write-Host "   The RDP URL will appear below once connected"
         Write-Host ""
         Write-Host "📋 LOGIN CREDENTIALS:"
         Write-Host "   Username: $env:RDP_USER"
@@ -186,5 +186,5 @@ jobs:
         Write-Host "🔗 CLOUDFLARE TUNNEL OUTPUT:"
         
         # Start cloudflared tunnel with TCP protocol for RDP
-        # Cloudflared will generate a random URL automatically
-        .\cloudflared.exe access tcp --url localhost:3389
+        # Using tunnel command instead of access tcp for better compatibility
+        .\cloudflared.exe tunnel --url rdp://localhost:3389
