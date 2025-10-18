@@ -1,3 +1,5 @@
+name: Optimized Windows RDP for MuMu Emulator
+
 on:
   workflow_dispatch: # Manual trigger only
 
@@ -15,6 +17,7 @@ jobs:
         # Enable Hypervisor
         bcdedit /set hypervisorlaunchtype auto
         Write-Host "Virtualization features enabled"
+
     - name: Optimize System Performance
       run: |
         Write-Host "=== OPTIMIZING SYSTEM PERFORMANCE ==="
@@ -34,6 +37,7 @@ jobs:
         Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "TaskbarAnimations" -Value 0
         
         Write-Host "System performance optimized"
+
     - name: Configure Virtual Memory
       run: |
         Write-Host "=== CONFIGURING VIRTUAL MEMORY ==="
@@ -49,6 +53,7 @@ jobs:
         Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" -Name "PagingFiles" -Value "C:\pagefile.sys 8192 16384" -Force
         
         Write-Host "Virtual memory configured (8GB-16GB)"
+
     - name: Configure RDP Settings
       run: |
         Write-Host "=== CONFIGURING RDP SETTINGS ==="
@@ -66,6 +71,7 @@ jobs:
         Restart-Service -Name TermService -Force
         
         Write-Host "RDP configured and enabled"
+
     - name: Optimize RDP for Graphics Performance
       run: |
         Write-Host "=== OPTIMIZING RDP GRAPHICS ==="
@@ -82,6 +88,7 @@ jobs:
         Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "MaxBandwidth" -Value 0xffffffff
         
         Write-Host "RDP graphics optimized"
+
     - name: Create RDP User with Fixed Password
       run: |
         Write-Host "=== CREATING RDP USER ==="
@@ -107,6 +114,7 @@ jobs:
         Write-Host "RDP user created successfully"
         Write-Host "Username: RDPUser"
         Write-Host "Password: $password"
+
     - name: Download MuMu Installer
       run: |
         Write-Host "=== DOWNLOADING MUMU INSTALLER ==="
@@ -118,6 +126,7 @@ jobs:
         Invoke-WebRequest -Uri $mumuUrl -OutFile "MuMu_Installer.exe" -UserAgent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         
         Write-Host "✅ MuMu installer downloaded successfully as 'MuMu_Installer.exe'"
+
     - name: Download MuMu Data File
       run: |
         Write-Host "=== DOWNLOADING MUMU DATA FILE ==="
@@ -129,6 +138,7 @@ jobs:
         Invoke-WebRequest -Uri $mumuDataUrl -OutFile "Android_Device.mumudata" -UserAgent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         
         Write-Host "✅ MuMu data file downloaded successfully as 'Android_Device.mumudata'"
+
     - name: Install Cloudflared
       run: |
         Write-Host "=== INSTALLING CLOUDFLARED ==="
@@ -137,6 +147,7 @@ jobs:
         Invoke-WebRequest -Uri "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe" -OutFile "cloudflared.exe"
         
         Write-Host "Cloudflared downloaded successfully"
+
     - name: Start Cloudflare Tunnel and Keep Alive
       run: |
         Write-Host "=== STARTING CLOUDFLARE TUNNEL ==="
